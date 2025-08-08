@@ -33,7 +33,7 @@ export class ServerExpress {
         resave: false,
         saveUninitialized: true,
         cookie: {
-          maxAge: 600000
+          maxAge: 600000,
         }
       })
     );
@@ -82,7 +82,7 @@ export class ServerExpress {
             reqParams: req.session.reqParams,
             user: req.user,
             tokenSet: req.session.tokenSet,
-            userinfo: req.session.userinfo
+            userinfo: req.session.userinfo || req.user,
           }
           res.render('response', data)
           break;
@@ -116,8 +116,11 @@ export class ServerExpress {
       const provider = req.params.provider
       // save teh current provider in req.session for the logout
       req.session.provider = provider
-
-      res.redirect(`/rpsim/response/${getLocale(req)}`);
+      let locale = getLocale(req);
+      if (locale == 'undefined') {
+        locale = 'en';
+      }
+      res.redirect(`/rpsim/response/${locale}`); // Redirect to a success page
     });
 
     app.get('/error', (req, res) => res.status(500).render('error', { err: req.query.error }));
@@ -240,7 +243,7 @@ async function setupStrategies() {
 }
 
 function getLocale(req: RequestWithUserSession) {
-  const userinfo = req.session && req.session.userinfo
+  const userinfo = req.session && req.session.userinfo;
   const reqParams = req.session && req.session.reqParams
   const locale = (userinfo && userinfo.locale ? userinfo.locale.substring(0, 2) : (reqParams && reqParams.ui_locales ? reqParams.ui_locales.substring(0, 2) : 'undefined'))
 
