@@ -77,9 +77,13 @@ export class ServerExpress {
           res.render('login', data)
           break;
         case 'response':
+          let reqParamsValue = req.session.reqParams;
+          if (reqParamsValue === undefined) {
+            reqParamsValue = req.user
+          }
           data = {
             ...data,
-            reqParams: req.session.reqParams,
+            reqParams: reqParamsValue,
             user: req.user,
             tokenSet: req.session.tokenSet,
             userinfo: req.session.userinfo || req.user,
@@ -97,7 +101,6 @@ export class ServerExpress {
 
     app.get('/auth/:provider', (req: RequestWithUserSession, res, next) => {
       const provider = req.params.provider
-      req.session.reqParams = req.query;
       passport.authenticate(provider, {
         ...req.query,
       })(req, res, next);
