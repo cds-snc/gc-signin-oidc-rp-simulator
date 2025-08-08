@@ -8,7 +8,7 @@ import { locales_en, locales_fr } from './locales/translations';
 
 import { OpenIDConnectStrategy } from './strategy';
 
-export const DEFAULT_PORT = process.env.port || 8080;
+export const DEFAULT_PORT = process.env.PORT || 8080;
 
 interface RequestWithUserSession extends express.Request {
   user?: any,
@@ -45,12 +45,12 @@ export class ServerExpress {
 
     setupStrategies();
 
-    app.get('/', (req, res) => res.render('index', {ui_config: ui_config}));
+    app.get('/', (req, res) => res.render('index', { ui_config: ui_config }));
 
     app.get('/rpsim/:page/:lang', (req: RequestWithUserSession, res) => {
       let template
 
-      switch(req.params.lang) {
+      switch (req.params.lang) {
         case 'en':
           template = locales_en
           break;
@@ -62,34 +62,34 @@ export class ServerExpress {
       }
 
       let data = {
-        ...template, 
+        ...template,
         page: req.params.page,
         ui_config: ui_config,
         isLoggedIn: req.user != undefined
       }
 
-      switch(req.params.page) {
+      switch (req.params.page) {
         case 'login':
-          data = {  
+          data = {
             ...data,
-            oidc_clients: oidc_clients.map((item) => { return {name: item.name, description: item.description, sic: item.sic} })
+            oidc_clients: oidc_clients.map((item) => { return { name: item.name, description: item.description, sic: item.sic } })
           }
           res.render('login', data)
           break;
-        case 'response':         
-          data = {  
+        case 'response':
+          data = {
             ...data,
             reqParams: req.session.reqParams,
-            user: req.user, 
-            tokenSet: req.session.tokenSet, 
+            user: req.user,
+            tokenSet: req.session.tokenSet,
             userinfo: req.session.userinfo
           }
           res.render('response', data)
           break;
         default:
-          data = {  
+          data = {
             ...data,
-            oidc_clients: oidc_clients.map((item) => { return {name: item.name, description: item.description} })
+            oidc_clients: oidc_clients.map((item) => { return { name: item.name, description: item.description } })
           }
           res.render('login', data)
       }
@@ -97,7 +97,7 @@ export class ServerExpress {
 
     app.get('/auth/:provider', (req: RequestWithUserSession, res, next) => {
       const provider = req.params.provider
-      
+
       passport.authenticate(provider, {
         ...req.query,
       })(req, res, next);
@@ -109,20 +109,20 @@ export class ServerExpress {
       passport.authenticate(provider, {
         successRedirect: `/success/${provider}`,
         failureRedirect: `/error?error=${req.query.error}: ${req.query.error_description}`,
-      })(req, res, next); 
+      })(req, res, next);
     });
 
     app.get('/success/:provider', (req: RequestWithUserSession, res) => {
-      const provider = req.params.provider 
+      const provider = req.params.provider
       // save teh current provider in req.session for the logout
       req.session.provider = provider
 
-      res.redirect(`/rpsim/response/${getLocale(req)}`);      
+      res.redirect(`/rpsim/response/${getLocale(req)}`);
     });
 
-    app.get('/error', (req, res) => res.status(500).render('error', {err: req.query.error}));
-    
-    app.get('/login', (req , res) => {
+    app.get('/error', (req, res) => res.status(500).render('error', { err: req.query.error }));
+
+    app.get('/login', (req, res) => {
       res.set('content-type', 'text/html;charset=UTF-8')
       return res.status(200).send(`
         <html xmlns="http://www.w3.org/1999/xhtml">
@@ -138,7 +138,7 @@ export class ServerExpress {
       )
     });
 
-    app.get('/signout', (req: RequestWithUserSession , res) => {
+    app.get('/signout', (req: RequestWithUserSession, res) => {
       res.set('content-type', 'text/html;charset=UTF-8')
       return res.status(200).send(`
         <html xmlns="http://www.w3.org/1999/xhtml">
@@ -159,7 +159,7 @@ export class ServerExpress {
       const provider = req.session.provider
       let params = {}
 
-      if ( !provider ) res.status(400).send('No Session')
+      if (!provider) res.status(400).send('No Session')
       else {
         const strategy = passport._strategy(provider)
         const client = strategy._client
@@ -168,8 +168,8 @@ export class ServerExpress {
         params = {
           client_id: client.client_id
         }
- 
-        if ( hint && hint == 'true' ) {
+
+        if (hint && hint == 'true') {
           params = {
             ...params,
             id_token_hint: req.session.tokenSet.id_token
@@ -177,12 +177,12 @@ export class ServerExpress {
         }
 
         if (locale && req.session) {
-          if (!req.session.userinfo) req.session.userinfo = {} 
+          if (!req.session.userinfo) req.session.userinfo = {}
           req.session.userinfo.locale = locale
-        } 
+        }
 
-        res.redirect(client.endSessionUrl( params ));
-      } 
+        res.redirect(client.endSessionUrl(params));
+      }
     });
 
     app.get('/logout/callback', (req: RequestWithUserSession, res) => {
@@ -190,9 +190,9 @@ export class ServerExpress {
 
       (req as any).logout();
       req.session.destroy((err) => {
-        if (err) res.status(500).render('error', {err: err});
+        if (err) res.status(500).render('error', { err: err });
         res.redirect(`/rpsim/login/${locale}`);
-      }); 
+      });
     });
 
     // invalid routes
@@ -210,7 +210,7 @@ export class ServerExpress {
       res.status(err.status || 500);
       res.render('error', {
         err: err.message
-      } );
+      });
     });
 
     this.listener = await app.listen(port, () => console.log(`Server listening on port: ${port}`));
@@ -242,7 +242,7 @@ async function setupStrategies() {
 function getLocale(req: RequestWithUserSession) {
   const userinfo = req.session && req.session.userinfo
   const reqParams = req.session && req.session.reqParams
-  const locale = (userinfo && userinfo.locale ? userinfo.locale.substring(0,2) : (reqParams && reqParams.ui_locales ? reqParams.ui_locales.substring(0,2) : 'undefined'))
+  const locale = (userinfo && userinfo.locale ? userinfo.locale.substring(0, 2) : (reqParams && reqParams.ui_locales ? reqParams.ui_locales.substring(0, 2) : 'undefined'))
 
   return locale
 }
