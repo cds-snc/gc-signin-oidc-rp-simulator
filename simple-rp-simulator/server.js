@@ -132,13 +132,3 @@ app.listen(PORT, () => {
 	console.log('Server started');
 	console.log(`Navigate to http://localhost:3005`);
 });
-
-
-// https://cds-gcsignin-dev.verify.ibm.com/idaas/mtfim/sps/idaas/login?
-// Target=https%3A%2F%2Fcds-gcsignin-dev.verify.ibm.com%2Foauth2%2Fauthorize%3Fclient_id%3Dc6bb2d02-936c-4795-a591-e623261c099d%26stateId%3D260e7d75-fa61-4667-8199-c63db0d2f40f
-// &client_id=c6bb2d02-936c-4795-a591-e623261c099d&max_age=1200&themeId=ef8a162b-ddb5-4c3f-bff8-895495022567
-
-// http://localhost:3000/
-// ?PolicyId=urn:ibm:security:authentication:asf:basicldapuser&identity_source_id=d67ed8ae-5971-423b-a376-2b357a9ef0e4
-// &themeId=ef8a162b-ddb5-4c3f-bff8-895495022567
-// &Target=https%3A%2F%2Fcds-gcsignin-dev.verify.ibm.com%2Foauth2%2Fauthorize%3Fclient_id%3Dabb9c045-e61b-4f99-b89f-85eb988b8c7d%26stateId%3Da468b984-ef29-459f-bf26-8dba43fffdb0%26themeId%3Def8a162b-ddb5-4c3f-bff8-895495022567
