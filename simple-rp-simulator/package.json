@@ -1,0 +1,33 @@
+{
+	"name": "dev-portal-sample-authorization",
+	"version": "1.0.0",
+	"description": "",
+	"main": "server.js",
+	"scripts": {
+		"start": "node server.js",
+		"dev": "nodemon index",
+		"watch": "nodemon --ignore public",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"contributors": [
+		{
+			"name": "Truman Butterworth",
+			"email": "trbutter@au1.ibm.com"
+		},
+		{
+			"name": "Yu Guo",
+			"email": "yu.guo@ibm.com"
+		}
+	],
+	"license": "MIT",
+	"dependencies": {
+		"dotenv": "^8.2.0",
+		"express": "^4.21.2",
+		"express-session": "^1.18.1",
+		"openid-client": "^5.6.5",
+		"pug": "^3.0.2"
+	},
+	"devDependencies": {
+		"nodemon": "^3.1.7"
+	}
+}

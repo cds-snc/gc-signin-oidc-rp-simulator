@@ -1,0 +1,30 @@
+extends layout.pug
+
+block content
+	.container.main
+		h3 Welcome #{userInfo.displayName},
+		p.lead.mb-5 You have successfully authenticated with IBM Security Verify.
+		p Below is the information retrieved from the <code>userInfo</code> endpoint for the authenticated user.
+	.container
+		.row
+			.col-md-8
+				table.table.table-bordered
+					thead.table-dark
+						tr
+							th User claims
+							th Value
+					tbody
+						each val, key in userInfo
+							if key === 'ext'
+								tr
+									td tenantId
+									td= userInfo.ext.tenantId
+							else
+								tr
+									td= key
+									td= val
+		.row
+			.col-md-6
+				a(href=`http://localhost:3000?rp=3546051599581189373`).btn.btn-primary GC Profile
+			.col-md-6
+				a(href=`/logout`).btn.btn-primary log out
