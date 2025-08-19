@@ -40,7 +40,10 @@ app.set('views', path.join(__dirname, 'front-end'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+app.get('/health', (req, res) => res.status(200).send('OK'));
 
+// const REDIRECT_URI_PATHNAME = new URL(process.env.REDIRECT_URI).pathname;
+const redirectUri = process.env.REDIRECT_URI || 'http://localhost:8080/callback';
 const REDIRECT_URI_PATHNAME = new URL(process.env.REDIRECT_URI).pathname;
 
 // Function for create client 
@@ -130,9 +133,9 @@ app.get('/debug', (req, res) => {
 });
 
 // Listen PORT
-const PORT = process.env.PORT || 3005;
+const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, () => {
 	console.log('Server started');
-	console.log(`Navigate to http://localhost:3005`);
+	console.log(`Navigate to http://localhost:${PORT}`);
 });
