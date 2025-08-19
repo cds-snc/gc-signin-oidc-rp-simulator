@@ -53,8 +53,8 @@ async function setUpOIDC() {
 	}
 	const issuer = await Issuer.discover(tenantURL);
 	const client = new issuer.Client({
-		client_id: process.env.IBM_VERIFY_CLIENT_ID,
-		client_secret: process.env.IBM_VERIFY_CLIENT_SECRET,
+		client_id: process.env.IBM_VERIFY_RP_CLIENT_ID,
+		client_secret: process.env.IBM_VERIFY_RP_CLIENT_SECRET,
 		redirect_uris: process.env.REDIRECT_URI,
 		response_typese: process.env.RESPONSE_TYPE
 	});
@@ -103,7 +103,7 @@ app.get('/dashboard', (req, res) => {
 	const userinfo = req.session.userinfo;
 	const profileApp = {
 		url: process.env.PROFILE_MANAGEMENT_URL,
-		rpId: process.env.IBM_VERIFY_RP_ID
+		rpAppId: process.env.IBM_VERIFY_RP_APP_ID
 	}
 	if (!userinfo) {
 		return res.redirect('/login');
