@@ -45,7 +45,7 @@ const REDIRECT_URI_PATHNAME = new URL(process.env.REDIRECT_URI).pathname;
 
 // Function for create client 
 async function setUpOIDC() {
-	let tenantURL = process.env.TENANT_URL;
+	let tenantURL = process.env.IBM_VERIFY_TENANT_URL;
 	if (tenantURL?.endsWith('/')) {
 		tenantURL = `${tenantURL}oauth2/.well-known/openid-configuration`
 	} else {
@@ -53,8 +53,8 @@ async function setUpOIDC() {
 	}
 	const issuer = await Issuer.discover(tenantURL);
 	const client = new issuer.Client({
-		client_id: process.env.CLIENT_ID,
-		client_secret: process.env.CLIENT_SECRET,
+		client_id: process.env.IBM_VERIFY_CLIENT_ID,
+		client_secret: process.env.IBM_VERIFY_CLIENT_SECRET,
 		redirect_uris: process.env.REDIRECT_URI,
 		response_typese: process.env.RESPONSE_TYPE
 	});
@@ -101,10 +101,14 @@ app.get(REDIRECT_URI_PATHNAME, async (req, res) => {
 // Page for render userInfo
 app.get('/dashboard', (req, res) => {
 	const userinfo = req.session.userinfo;
+	const profileApp = {
+		url: process.env.PROFILE_MANAGEMENT_URL,
+		rpId: process.env.RP_ID
+	}
 	if (!userinfo) {
 		return res.redirect('/login');
 	}
-	res.render('dashboard', { userInfo: userinfo });
+	res.render('dashboard', { userInfo: userinfo, profileApp: profileApp });
 });
 
 app.get('/logout', async (req, res) => {
