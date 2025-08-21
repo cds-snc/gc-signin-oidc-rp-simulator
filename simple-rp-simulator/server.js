@@ -20,9 +20,13 @@ Copyright (c) 2023 - IBM Corp.
 
 const express = require('express');
 const session = require('express-session');
+// Create a MemoryStore instance
+const memoryStore = new session.MemoryStore();
 require('dotenv').config();
 
 const { Issuer, generators } = require('openid-client');
+const { createRemoteJWKSet, jwtVerify } = require('jose');
+const crpto = require('crypto');
 const path = require('path');
 const app = express();
 
@@ -31,7 +35,14 @@ app.use(session({
 	secret: 'my-secret',
 	resave: true,
 	saveUninitialized: false,
-	secure: true
+	secure: true,
+	store: memoryStore,
+	genid: (req) => {
+		if (req.oidcSub)
+			return req.oidcSub;
+		else
+			return crpto.randomUUID();
+	},
 }));
 
 //middleware
@@ -96,9 +107,19 @@ app.get(REDIRECT_URI_PATHNAME, async (req, res) => {
 	const tokenSet = await client.callback(process.env.REDIRECT_URI,
 		params, { state: req.query.state, nonce: req.session.nonce });
 	const userinfo = await client.userinfo(tokenSet.access_token);
-	req.session.tokenSet = tokenSet;
-	req.session.userinfo = userinfo;
-	res.redirect('/dashboard');
+	
+	// use sub in this sample as session id
+	req.oidcSub = tokenSet.claims().sub;
+	// regenerate session, so that genid function will use sub as session id
+	req.session.regenerate((err) => {
+		if (err) {
+			console.error('Session regeneration error:', err);
+			return res.status(500).send('Internal Server Error');
+		}
+		req.session.tokenSet = tokenSet; // Save tokenSet in session
+		req.session.userinfo = userinfo; // Save userinfo in session
+		res.redirect('/dashboard');
+	});
 });
 
 // Page for render userInfo
@@ -111,7 +132,8 @@ app.get('/dashboard', (req, res) => {
 	if (!userinfo) {
 		return res.redirect('/login');
 	}
-	res.render('dashboard', { userInfo: userinfo, profileApp: profileApp });
+	const tokenSet = req.session.tokenSet;
+	res.render('dashboard', { userInfo: userinfo, profileApp: profileApp, tokenSet: tokenSet });
 });
 
 app.get('/logout', async (req, res) => {
@@ -121,11 +143,111 @@ app.get('/logout', async (req, res) => {
 	const token = req.session.tokenSet;
 	// check result
 	req.session.destroy(() => {
-		res.redirect('/');
+		if (process.env.POST_LOGOUT_REDIRECT_URI) {
+			// Get end_session_endpoint from issuer metadata
+			const endSessionUrl = client.issuer.metadata.end_session_endpoint;
+            // Build logout URL for IdP (Single Logout)
+			let logoutUrl = endSessionUrl;
+			if (logoutUrl) {
+				const params = new URLSearchParams();
+				if (token && token.id_token) {
+					params.append('id_token_hint', token.id_token);
+				}
+				params.append('post_logout_redirect_uri', process.env.POST_LOGOUT_REDIRECT_URI);
+				logoutUrl += `?${params.toString()}`;
+
+				res.redirect(logoutUrl);
+			}
+			else{
+				res.redirect('/');
+			}
+		}
+		else{
+			res.redirect('/');
+		}
 	});
-	// logout from OP ? doesn't work
-	await client.revoke(token.access_token).catch(console.error);
+	// Optionally revoke access token at OP
+	// if (token && token.access_token) {
+	// 	await client.revoke(token.access_token).catch(console.error);
+	// }
 });
+
+// Back Channel Logout endpoint
+app.post('/backchannel_logout', async (req, res) => {
+	console.log('Back channel logout init:');
+	try {
+		const client = await setUpOIDC();
+		const logoutToken = req.body.logout_token;
+
+		if (!logoutToken) {
+			return res.status(400).json({ error: 'logout_token is required' });
+		}
+
+		const jwks = createRemoteJWKSet(new URL(client.issuer.metadata.jwks_uri));
+        const payload = await validateLogoutToken(logoutToken, jwks);
+	
+		// Terminate session(s)
+		if (payload.sid) {
+			await destroySessionsBySid(payload.sid);
+		} else if (payload.sub) {
+			await destroySessionsBySub(payload.sub);
+		}
+
+		// Return successful response
+		return res.status(200).json({ status: 'ok' });
+	} catch (error) {
+		console.error('Back channel logout error:', error);
+		return res.status(400).json({ error: 'Internal server error' });
+	}
+});
+
+async function validateLogoutToken(logoutToken, jwks) {
+  if (!logoutToken) throw new Error('missing logout_token');
+
+  // Verify signature and standard claims (exp, nbf, iss, aud) via jose
+  const { payload } = await jwtVerify(logoutToken, jwks, {
+    audience: process.env.CLIENT_ID
+    // iat/exp/nbf are validated by jwtVerify by default
+  });
+
+  // Required: events claim with backchannel-logout event
+  const events = payload.events;
+  const bcEventKey = 'http://schemas.openid.net/event/backchannel-logout';
+  if (!events || typeof events !== 'object' || !events[bcEventKey]) {
+    throw new Error('missing backchannel logout event claim');
+  }
+
+  // Required: jti present
+//   if (!payload.jti) throw new Error('missing jti claim');
+
+//   // Replay protection: reject if jti already seen
+//   if (seenJti.has(payload.jti)) throw new Error('replayed logout_token (jti seen)');
+//   // Mark as seen; in production persist with TTL at least until token expiry
+//   seenJti.add(payload.jti);
+
+  // Required: sub or sid present (per spec)
+  if (!payload.sub && !payload.sid) throw new Error('must contain sub or sid');
+
+  return payload;
+}
+
+// Helper placeholders - implement according to your session store
+async function destroySessionsBySid(sid) {
+  // Example: find session by sid and destroy it
+  memoryStore.destroy(sid, (err) => {
+    if (err) {
+      console.error('Failed to destroy session:', err);
+    }
+  });
+}
+async function destroySessionsBySub(sub) {
+  // Example: find sessions by sub and destroy them
+    memoryStore.destroy(sub, (err) => {
+    if (err) {
+      console.error('Failed to destroy session:', err);
+    }
+  });
+}
 
 app.get('/debug', (req, res) => {
 	console.log('Session:', req.session);
