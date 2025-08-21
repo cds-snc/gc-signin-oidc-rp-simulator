@@ -5,6 +5,7 @@ block content
 		h3 Welcome #{userInfo.displayName},
 		p.lead.mb-5 You have successfully authenticated with IBM Security Verify.
 		p Below is the information retrieved from the <code>userInfo</code> endpoint for the authenticated user.
+		p This is value from ID Token: #{JSON.stringify(tokenSet)}
 	.container
 		.row
 			.col-md-8
