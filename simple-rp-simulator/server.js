@@ -30,7 +30,12 @@ const crpto = require('crypto');
 const path = require('path');
 const app = express();
 
+// ========================
+// Trust first proxy if behind a proxy (e.g., when using Heroku, Bluemix, AWS ELB, Nginx, etc.)
+// see https://expressjs.com/en/guide/behind-proxies.html
 app.set('trust proxy', 1);
+// ========================
+
 // Init session
 app.use(session({
 	secret: 'my-secret',
