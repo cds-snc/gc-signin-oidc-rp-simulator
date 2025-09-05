@@ -36,17 +36,11 @@ app.use(session({
 	secret: 'my-secret',
 	resave: true,
 	saveUninitialized: false,
-	// secure: true,
 	store: memoryStore,
-	// cookie: {
-	// 	secure: process.env.COOKIE_SECURE,
-	// 	sameSite: 'lax',
-	// 	httpOnly: process.env.COOKIE_SECURE
-	// },
 	cookie: {
-		secure: true,
+		secure: process.env.NODE_ENV === 'production',
 		sameSite: 'lax',
-		httpOnly: true
+		httpOnly: process.env.NODE_ENV === 'production'
 	},
 	genid: (req) => {
 		if (req.oidcSub)
