@@ -17,6 +17,26 @@ Authorization code flow with IBM Security Verify.
 ## Troubleshooting
 - CLI displaying `npm ERR! code E401` when trying to run `npm install`. Delete the package-lock.json file and run `npm install` again.
 
+## Docker Troubleshooting
+If you get the below error, you will need to delete the docker config values.
+- Error saving credentials: error storing credentials - err: exit status 1, out: 
+`Docker credential helper 'docker-credential-desktop' not found: write EPIPE.`
+
+```
+cd ~/.docker/config.json
+cat config.json 
+{
+        "credsStore": "some-value"
+}
+```
+
+delete the credsStore attributes in the config.json
+
+## Deploying Docker Image from local to AWS
+- Building a Dockerimage from your macbook M1 to AWS
+   ``` bash
+   docker buildx  build --platform linux/amd64 -t [NAME] .
+   ```
 
 ## License
 
