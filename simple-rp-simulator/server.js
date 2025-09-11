@@ -88,7 +88,7 @@ async function setUpOIDC() {
 
 // Home route
 app.get('/', (req, res) => {
-	if (req.session.token) {
+	if (req.session.tokenSet) {
 		res.redirect("/dashboard");
 	} else {
 		res.render('index')
