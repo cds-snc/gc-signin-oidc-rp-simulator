@@ -79,8 +79,8 @@ async function setUpOIDC() {
 	const client = new issuer.Client({
 		client_id: process.env.IBM_VERIFY_RP_CLIENT_ID,
 		client_secret: process.env.IBM_VERIFY_RP_CLIENT_SECRET,
-		redirect_uris: process.env.REDIRECT_URI,
-		response_types: [process.env.RESPONSE_TYPE]
+		redirect_uris: [process.env.REDIRECT_URI],
+		response_types: [process.env.RESPONSE_TYPE || 'code']
 	});
 
 	return client;
@@ -137,7 +137,7 @@ app.get('/dashboard', (req, res) => {
 	const userinfo = req.session.userinfo;
 	const profileApp = {
 		url: process.env.PROFILE_MANAGEMENT_URL,
-		rpAppId: process.env.IBM_VERIFY_RP_APP_ID
+		client_id: process.env.IBM_VERIFY_RP_CLIENT_ID
 	}
 	if (!userinfo) {
 		return res.redirect('/login');
@@ -146,42 +146,39 @@ app.get('/dashboard', (req, res) => {
 	res.render('dashboard', { userInfo: userinfo, profileApp: profileApp, tokenSet: tokenSet });
 });
 
-app.get('/logout', async (req, res) => {
-	// import client
-	const client = await setUpOIDC();
-	// get token from session
-	const token = req.session.tokenSet;
-	// check result
-	req.session.destroy(() => {
-		if (process.env.POST_LOGOUT_REDIRECT_URI) {
-			// Get end_session_endpoint from issuer metadata
+app.get("/logout", async (req, res, next) => {
+	try {
+		const client = await setUpOIDC();
+		const token = req.session.tokenSet;
+
+		req.session.destroy(err => {
+			if (err) {
+				return next(err);
+			}
+
 			const endSessionUrl = client.issuer.metadata.end_session_endpoint;
-			// Build logout URL for IdP (Single Logout)
-			let logoutUrl = endSessionUrl;
-			if (logoutUrl) {
+			let logoutUrl = "/";
+
+			if (endSessionUrl) {
 				const params = new URLSearchParams();
-				if (token && token.id_token) {
-					params.append('id_token_hint', token.id_token);
+				if (token?.id_token) {
+					params.append("id_token_hint", token.id_token);
 				}
-				params.append('post_logout_redirect_uri', process.env.POST_LOGOUT_REDIRECT_URI);
-				logoutUrl += `?${params.toString()}`;
+				if (process.env.POST_LOGOUT_REDIRECT_URI) {
+					params.append(
+						"post_logout_redirect_uri",
+						process.env.POST_LOGOUT_REDIRECT_URI
+					);
+				}
+				logoutUrl = `${endSessionUrl}?${params.toString()}`;
+			}
 
-				res.redirect(logoutUrl);
-			}
-			else {
-				res.redirect('/');
-			}
-		}
-		else {
-			res.redirect('/');
-		}
-	});
-	// Optionally revoke access token at OP
-	// if (token && token.access_token) {
-	// 	await client.revoke(token.access_token).catch(console.error);
-	// }
+			res.redirect(logoutUrl);
+		});
+	} catch (err) {
+		next(err);
+	}
 });
-
 // Back Channel Logout endpoint
 app.post('/backchannel_logout', async (req, res) => {
 	console.log('Back channel logout init:');

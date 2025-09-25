@@ -4,6 +4,22 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "Debug Simple RP Simulator",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/simple-rp-simulator/server.js",
+            "cwd": "${workspaceFolder}/simple-rp-simulator",
+            "env": {
+                "NODE_ENV": "development"
+            },
+            "console": "integratedTerminal",
+            "restart": true,
+            "stopOnEntry": false
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Launch Program",
             "skipFiles": [
                 "<node_internals>/**"
