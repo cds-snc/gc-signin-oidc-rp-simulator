@@ -30,13 +30,23 @@ const crpto = require('crypto');
 const path = require('path');
 const app = express();
 
+// ========================
+// Trust first proxy if behind a proxy (e.g., when using Heroku, Bluemix, AWS ELB, Nginx, etc.)
+// see https://expressjs.com/en/guide/behind-proxies.html
+app.set('trust proxy', 1);
+// ========================
+
 // Init session
 app.use(session({
 	secret: 'my-secret',
 	resave: true,
 	saveUninitialized: false,
-	secure: true,
 	store: memoryStore,
+	cookie: {
+		secure: process.env.NODE_ENV === 'production',
+		sameSite: 'lax',
+		httpOnly: process.env.NODE_ENV === 'production'
+	},
 	genid: (req) => {
 		if (req.oidcSub)
 			return req.oidcSub;
@@ -69,8 +79,8 @@ async function setUpOIDC() {
 	const client = new issuer.Client({
 		client_id: process.env.IBM_VERIFY_RP_CLIENT_ID,
 		client_secret: process.env.IBM_VERIFY_RP_CLIENT_SECRET,
-		redirect_uris: process.env.REDIRECT_URI,
-		response_typese: process.env.RESPONSE_TYPE
+		redirect_uris: [process.env.REDIRECT_URI],
+		response_types: [process.env.RESPONSE_TYPE || 'code']
 	});
 
 	return client;
@@ -78,7 +88,7 @@ async function setUpOIDC() {
 
 // Home route
 app.get('/', (req, res) => {
-	if (req.session.token) {
+	if (req.session.tokenSet) {
 		res.redirect("/dashboard");
 	} else {
 		res.render('index')
@@ -107,7 +117,7 @@ app.get(REDIRECT_URI_PATHNAME, async (req, res) => {
 	const tokenSet = await client.callback(process.env.REDIRECT_URI,
 		params, { state: req.query.state, nonce: req.session.nonce });
 	const userinfo = await client.userinfo(tokenSet.access_token);
-	
+
 	// use sub in this sample as session id
 	req.oidcSub = tokenSet.claims().sub;
 	// regenerate session, so that genid function will use sub as session id
@@ -127,7 +137,7 @@ app.get('/dashboard', (req, res) => {
 	const userinfo = req.session.userinfo;
 	const profileApp = {
 		url: process.env.PROFILE_MANAGEMENT_URL,
-		rpAppId: process.env.IBM_VERIFY_RP_APP_ID
+		client_id: process.env.IBM_VERIFY_RP_CLIENT_ID
 	}
 	if (!userinfo) {
 		return res.redirect('/login');
@@ -136,42 +146,39 @@ app.get('/dashboard', (req, res) => {
 	res.render('dashboard', { userInfo: userinfo, profileApp: profileApp, tokenSet: tokenSet });
 });
 
-app.get('/logout', async (req, res) => {
-	// import client
-	const client = await setUpOIDC();
-	// get token from session
-	const token = req.session.tokenSet;
-	// check result
-	req.session.destroy(() => {
-		if (process.env.POST_LOGOUT_REDIRECT_URI) {
-			// Get end_session_endpoint from issuer metadata
+app.get("/logout", async (req, res, next) => {
+	try {
+		const client = await setUpOIDC();
+		const token = req.session.tokenSet;
+
+		req.session.destroy(err => {
+			if (err) {
+				return next(err);
+			}
+
 			const endSessionUrl = client.issuer.metadata.end_session_endpoint;
-            // Build logout URL for IdP (Single Logout)
-			let logoutUrl = endSessionUrl;
-			if (logoutUrl) {
+			let logoutUrl = "/";
+
+			if (endSessionUrl) {
 				const params = new URLSearchParams();
-				if (token && token.id_token) {
-					params.append('id_token_hint', token.id_token);
+				if (token?.id_token) {
+					params.append("id_token_hint", token.id_token);
 				}
-				params.append('post_logout_redirect_uri', process.env.POST_LOGOUT_REDIRECT_URI);
-				logoutUrl += `?${params.toString()}`;
+				if (process.env.POST_LOGOUT_REDIRECT_URI) {
+					params.append(
+						"post_logout_redirect_uri",
+						process.env.POST_LOGOUT_REDIRECT_URI
+					);
+				}
+				logoutUrl = `${endSessionUrl}?${params.toString()}`;
+			}
 
-				res.redirect(logoutUrl);
-			}
-			else{
-				res.redirect('/');
-			}
-		}
-		else{
-			res.redirect('/');
-		}
-	});
-	// Optionally revoke access token at OP
-	// if (token && token.access_token) {
-	// 	await client.revoke(token.access_token).catch(console.error);
-	// }
+			res.redirect(logoutUrl);
+		});
+	} catch (err) {
+		next(err);
+	}
 });
-
 // Back Channel Logout endpoint
 app.post('/backchannel_logout', async (req, res) => {
 	console.log('Back channel logout init:');
@@ -184,8 +191,8 @@ app.post('/backchannel_logout', async (req, res) => {
 		}
 
 		const jwks = createRemoteJWKSet(new URL(client.issuer.metadata.jwks_uri));
-        const payload = await validateLogoutToken(logoutToken, jwks);
-	
+		const payload = await validateLogoutToken(logoutToken, jwks);
+
 		// Terminate session(s)
 		if (payload.sid) {
 			await destroySessionsBySid(payload.sid);
@@ -202,51 +209,51 @@ app.post('/backchannel_logout', async (req, res) => {
 });
 
 async function validateLogoutToken(logoutToken, jwks) {
-  if (!logoutToken) throw new Error('missing logout_token');
+	if (!logoutToken) throw new Error('missing logout_token');
 
-  // Verify signature and standard claims (exp, nbf, iss, aud) via jose
-  const { payload } = await jwtVerify(logoutToken, jwks, {
-    audience: process.env.CLIENT_ID
-    // iat/exp/nbf are validated by jwtVerify by default
-  });
+	// Verify signature and standard claims (exp, nbf, iss, aud) via jose
+	const { payload } = await jwtVerify(logoutToken, jwks, {
+		audience: process.env.CLIENT_ID
+		// iat/exp/nbf are validated by jwtVerify by default
+	});
 
-  // Required: events claim with backchannel-logout event
-  const events = payload.events;
-  const bcEventKey = 'http://schemas.openid.net/event/backchannel-logout';
-  if (!events || typeof events !== 'object' || !events[bcEventKey]) {
-    throw new Error('missing backchannel logout event claim');
-  }
+	// Required: events claim with backchannel-logout event
+	const events = payload.events;
+	const bcEventKey = 'http://schemas.openid.net/event/backchannel-logout';
+	if (!events || typeof events !== 'object' || !events[bcEventKey]) {
+		throw new Error('missing backchannel logout event claim');
+	}
 
-  // Required: jti present
-//   if (!payload.jti) throw new Error('missing jti claim');
+	// Required: jti present
+	//   if (!payload.jti) throw new Error('missing jti claim');
 
-//   // Replay protection: reject if jti already seen
-//   if (seenJti.has(payload.jti)) throw new Error('replayed logout_token (jti seen)');
-//   // Mark as seen; in production persist with TTL at least until token expiry
-//   seenJti.add(payload.jti);
+	//   // Replay protection: reject if jti already seen
+	//   if (seenJti.has(payload.jti)) throw new Error('replayed logout_token (jti seen)');
+	//   // Mark as seen; in production persist with TTL at least until token expiry
+	//   seenJti.add(payload.jti);
 
-  // Required: sub or sid present (per spec)
-  if (!payload.sub && !payload.sid) throw new Error('must contain sub or sid');
+	// Required: sub or sid present (per spec)
+	if (!payload.sub && !payload.sid) throw new Error('must contain sub or sid');
 
-  return payload;
+	return payload;
 }
 
 // Helper placeholders - implement according to your session store
 async function destroySessionsBySid(sid) {
-  // Example: find session by sid and destroy it
-  memoryStore.destroy(sid, (err) => {
-    if (err) {
-      console.error('Failed to destroy session:', err);
-    }
-  });
+	// Example: find session by sid and destroy it
+	memoryStore.destroy(sid, (err) => {
+		if (err) {
+			console.error('Failed to destroy session:', err);
+		}
+	});
 }
 async function destroySessionsBySub(sub) {
-  // Example: find sessions by sub and destroy them
-    memoryStore.destroy(sub, (err) => {
-    if (err) {
-      console.error('Failed to destroy session:', err);
-    }
-  });
+	// Example: find sessions by sub and destroy them
+	memoryStore.destroy(sub, (err) => {
+		if (err) {
+			console.error('Failed to destroy session:', err);
+		}
+	});
 }
 
 app.get('/debug', (req, res) => {
