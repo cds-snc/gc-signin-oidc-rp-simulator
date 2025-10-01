@@ -69,21 +69,28 @@ const REDIRECT_URI_PATHNAME = new URL(process.env.REDIRECT_URI).pathname;
 
 // Function for create client 
 async function setUpOIDC() {
-	let tenantURL = process.env.IBM_VERIFY_TENANT_URL;
-	if (tenantURL?.endsWith('/')) {
-		tenantURL = `${tenantURL}oauth2/.well-known/openid-configuration`
-	} else {
-		tenantURL = `${tenantURL}/oauth2/.well-known/openid-configuration`
-	}
-	const issuer = await Issuer.discover(tenantURL);
-	const client = new issuer.Client({
-		client_id: process.env.IBM_VERIFY_RP_CLIENT_ID,
-		client_secret: process.env.IBM_VERIFY_RP_CLIENT_SECRET,
-		redirect_uris: [process.env.REDIRECT_URI],
-		response_types: [process.env.RESPONSE_TYPE || 'code']
-	});
+	try {
+		let tenantURL = process.env.IBM_VERIFY_TENANT_URL;
+		if (tenantURL?.endsWith('/')) {
+			tenantURL = `${tenantURL}oauth2/.well-known/openid-configuration`
+		} else {
+			tenantURL = `${tenantURL}/oauth2/.well-known/openid-configuration`
+		}
+		const issuer = await Issuer.discover(tenantURL);
+		const client = new issuer.Client({
+			client_id: process.env.IBM_VERIFY_RP_CLIENT_ID,
+			client_secret: process.env.IBM_VERIFY_RP_CLIENT_SECRET,
+			redirect_uris: [process.env.REDIRECT_URI],
+			response_types: [process.env.RESPONSE_TYPE || 'code']
+		});
 
-	return client;
+		return client;
+
+	} catch (error) {
+		console.error('Error setting up OIDC client:', error);
+		handleErrorAndRedirect(req, res, error);
+	}
+
 }
 
 // Home route
@@ -99,41 +106,55 @@ app.get('/', (req, res) => {
 // store the code_verifier in your framework's session mechanism, if it is a cookie based solution
 // it should be httpOnly (not readable by javascript) and encrypted.
 
-app.get('/login', async (req, res) => {
-	const client = await setUpOIDC();
-	const url = client.authorizationUrl({
-		scope: process.env.SCOPE,
-		state: generators.state(),
-		redirect_uri: process.env.REDIRECT_URI,
-		response_types: process.env.RESPONSE_TYPE,
-	});
-	res.redirect(url);
+app.get('/login', async (req, res, next) => {
+
+	try {
+		const client = await setUpOIDC();
+		const url = client.authorizationUrl({
+			scope: process.env.SCOPE,
+			state: generators.state(),
+			redirect_uri: process.env.REDIRECT_URI,
+			response_types: process.env.RESPONSE_TYPE,
+		});
+		res.redirect(url);
+
+	} catch (error) {
+		handleErrorAndRedirect(req, res, error);
+	}
 });
 
 
 app.get(REDIRECT_URI_PATHNAME, async (req, res) => {
-	const client = await setUpOIDC();
-	const params = client.callbackParams(req);
-	const tokenSet = await client.callback(process.env.REDIRECT_URI,
-		params, { state: req.query.state, nonce: req.session.nonce });
-	const userinfo = await client.userinfo(tokenSet.access_token);
 
-	// use sub in this sample as session id
-	req.oidcSub = tokenSet.claims().sub;
-	// regenerate session, so that genid function will use sub as session id
-	req.session.regenerate((err) => {
-		if (err) {
-			console.error('Session regeneration error:', err);
-			return res.status(500).send('Internal Server Error');
-		}
-		req.session.tokenSet = tokenSet; // Save tokenSet in session
-		req.session.userinfo = userinfo; // Save userinfo in session
-		res.redirect('/dashboard');
-	});
+	try {
+		const client = await setUpOIDC();
+		const params = client.callbackParams(req);
+		const tokenSet = await client.callback(process.env.REDIRECT_URI,
+			params, { state: req.query.state, nonce: req.session.nonce });
+		const userinfo = await client.userinfo(tokenSet.access_token);
+
+		// use sub in this sample as session id
+		req.oidcSub = tokenSet.claims().sub;
+		// regenerate session, so that genid function will use sub as session id
+		req.session.regenerate((err) => {
+			if (err) {
+				console.error('Session regeneration error:', err);
+				return res.status(500).send('Internal Server Error');
+			}
+			req.session.tokenSet = tokenSet; // Save tokenSet in session
+			req.session.userinfo = userinfo; // Save userinfo in session
+			res.redirect('/dashboard');
+		});
+
+	} catch (error) {
+		console.error('Error handling OIDC callback:', error);
+		handleErrorAndRedirect(req, res, error);
+	}
+
 });
 
 // Page for render userInfo
-app.get('/dashboard', (req, res) => {
+app.get('/dashboard', ensureAuthenticated, (req, res) => {
 	const userinfo = req.session.userinfo;
 	const profileApp = {
 		url: process.env.PROFILE_MANAGEMENT_URL,
@@ -176,7 +197,7 @@ app.get("/logout", async (req, res, next) => {
 			res.redirect(logoutUrl);
 		});
 	} catch (err) {
-		next(err);
+		handleErrorAndRedirect(req, res, err);
 	}
 });
 // Back Channel Logout endpoint
@@ -204,8 +225,18 @@ app.post('/backchannel_logout', async (req, res) => {
 		return res.status(200).json({ status: 'ok' });
 	} catch (error) {
 		console.error('Back channel logout error:', error);
-		return res.status(400).json({ error: 'Internal server error' });
+		handleErrorAndRedirect(req, res, error);
 	}
+});
+
+app.get('/error', (req, res) => {
+	const err = req.session.error || {};
+	res.render('error', {
+		status: 500,
+		message: err.message || 'Internal Server Error',
+		description: err.error_description || '',
+	});
+	delete req.session.error;
 });
 
 async function validateLogoutToken(logoutToken, jwks) {
@@ -268,3 +299,62 @@ app.listen(PORT, () => {
 	console.log('Server started');
 	console.log(`Navigate to http://localhost:${PORT}`);
 });
+
+async function refreshAccessToken(req) {
+	const client = await setUpOIDC();
+	const tokenSet = req.session.tokenSet;
+
+	if (!tokenSet?.refresh_token) {
+		throw new Error("No refresh token available");
+	}
+
+	try {
+		const refreshed = await client.refresh(tokenSet.refresh_token);
+		const userinfo = await client.userinfo(refreshed.access_token);
+
+		req.session.tokenSet = refreshed; // overwrite with fresh tokens
+		req.session.userinfo = userinfo; // Save userinfo in session
+		console.log("Access token refreshed");
+		return refreshed;
+	} catch (err) {
+		console.error("Failed to refresh access token:", err);
+		handleErrorAndRedirect(req, res, err);
+	}
+}
+
+async function ensureAuthenticated(req, res, next) {
+	try {
+		if (!req.session.tokenSet) {
+			return res.redirect("/login");
+		}
+		// purpose of the refresh token is get the users updated values
+		await refreshAccessToken(req);
+
+		next();
+	} catch (err) {
+		console.error("Auth check failed:", err);
+
+		handleErrorAndRedirect(req, res, err);
+	}
+}
+
+function handleErrorAndRedirect(req, res, err) {
+	console.log("Handling error and redirecting to /error:", err);
+	req.session.error = {
+		message: err.message,
+		stack: err.stack,
+		description: err.error_description
+	};
+	res.redirect("/error");
+}
+
+// Global error handler (must come after all routes)
+// this must always be the last app.use call
+function errorHandler(err, req, res, next) {
+	//middleware error handler
+	console.error("Unhandled server error:", err);
+
+	handleErrorAndRedirect(req, res, err);
+}
+
+app.use(errorHandler);
