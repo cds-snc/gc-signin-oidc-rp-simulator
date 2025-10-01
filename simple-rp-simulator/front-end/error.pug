@@ -1,0 +1,9 @@
+extends layout.pug
+
+block content
+    .container.main
+        h1 #{status || 500} - Something went wrong
+        p.lead.mb-5 #{message || "An unexpected error occurred"}
+        p.lead.mb-5 #{description || "An unexpected error occurred"}
+        a(href='/').btn.btn-primary Try again
+
