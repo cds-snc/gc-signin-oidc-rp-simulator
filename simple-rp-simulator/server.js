@@ -30,6 +30,10 @@ const crpto = require('crypto');
 const path = require('path');
 const app = express();
 
+const RESPONSE_TYPE = 'code';
+const SCOPE = 'openid profile email phone language';
+
+
 // ========================
 // Trust first proxy if behind a proxy (e.g., when using Heroku, Bluemix, AWS ELB, Nginx, etc.)
 // see https://expressjs.com/en/guide/behind-proxies.html
@@ -81,7 +85,7 @@ async function setUpOIDC() {
 			client_id: process.env.IBM_VERIFY_RP_CLIENT_ID,
 			client_secret: process.env.IBM_VERIFY_RP_CLIENT_SECRET,
 			redirect_uris: [process.env.REDIRECT_URI],
-			response_types: [process.env.RESPONSE_TYPE || 'code']
+			response_types: [RESPONSE_TYPE]
 		});
 
 		return client;
@@ -111,10 +115,10 @@ app.get('/login', async (req, res, next) => {
 	try {
 		const client = await setUpOIDC();
 		const url = client.authorizationUrl({
-			scope: process.env.SCOPE,
+			scope: SCOPE,
 			state: generators.state(),
 			redirect_uri: process.env.REDIRECT_URI,
-			response_types: process.env.RESPONSE_TYPE,
+			response_types: RESPONSE_TYPE,
 		});
 		res.redirect(url);
 
