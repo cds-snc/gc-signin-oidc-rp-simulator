@@ -133,7 +133,7 @@ app.get(REDIRECT_URI_PATHNAME, async (req, res) => {
 });
 
 // Page for render userInfo
-app.get('/dashboard', (req, res) => {
+app.get('/dashboard', ensureAuthenticated, (req, res) => {
 	const userinfo = req.session.userinfo;
 	const profileApp = {
 		url: process.env.PROFILE_MANAGEMENT_URL,
@@ -208,6 +208,8 @@ app.post('/backchannel_logout', async (req, res) => {
 	}
 });
 
+
+
 async function validateLogoutToken(logoutToken, jwks) {
 	if (!logoutToken) throw new Error('missing logout_token');
 
@@ -268,3 +270,43 @@ app.listen(PORT, () => {
 	console.log('Server started');
 	console.log(`Navigate to http://localhost:${PORT}`);
 });
+
+async function refreshAccessToken(req) {
+	const client = await setUpOIDC();
+	const tokenSet = req.session.tokenSet;
+
+	if (!tokenSet?.refresh_token) {
+		throw new Error("No refresh token available");
+	}
+
+	try {
+		const refreshed = await client.refresh(tokenSet.refresh_token);
+		const userinfo = await client.userinfo(refreshed.access_token);
+
+		req.session.tokenSet = refreshed; // overwrite with fresh tokens
+		req.session.userinfo = userinfo; // Save userinfo in session
+		console.log("Access token refreshed");
+		return refreshed;
+	} catch (err) {
+		console.error("Failed to refresh access token:", err);
+		throw err;
+	}
+}
+
+async function ensureAuthenticated(req, res, next) {
+	try {
+		if (!req.session.tokenSet) {
+			return res.redirect("/login");
+		}
+
+		const client = await setUpOIDC();
+		const tokenSet = req.session.tokenSet;
+		// purpose of the refresh token is get the users updated values
+		await refreshAccessToken(req);
+
+		next();
+	} catch (err) {
+		console.error("Auth check failed:", err);
+		return res.redirect("/login");
+	}
+}
