@@ -72,7 +72,7 @@ const redirectUri = process.env.REDIRECT_URI || 'http://localhost:8080/callback'
 const REDIRECT_URI_PATHNAME = new URL(process.env.REDIRECT_URI).pathname;
 
 // Function for create client 
-async function setUpOIDC() {
+async function setUpOIDC(req, res) {
 	try {
 		let tenantURL = process.env.IBM_VERIFY_TENANT_URL;
 		if (tenantURL?.endsWith('/')) {
@@ -113,7 +113,7 @@ app.get('/', (req, res) => {
 app.get('/login', async (req, res, next) => {
 
 	try {
-		const client = await setUpOIDC();
+		const client = await setUpOIDC(req, res);
 		const url = client.authorizationUrl({
 			scope: SCOPE,
 			state: generators.state(),
@@ -131,7 +131,7 @@ app.get('/login', async (req, res, next) => {
 app.get(REDIRECT_URI_PATHNAME, async (req, res) => {
 
 	try {
-		const client = await setUpOIDC();
+		const client = await setUpOIDC(req, res);
 		const params = client.callbackParams(req);
 		const tokenSet = await client.callback(process.env.REDIRECT_URI,
 			params, { state: req.query.state, nonce: req.session.nonce });
@@ -173,7 +173,7 @@ app.get('/dashboard', ensureAuthenticated, (req, res) => {
 
 app.get("/logout", async (req, res, next) => {
 	try {
-		const client = await setUpOIDC();
+		const client = await setUpOIDC(req, res);
 		const token = req.session.tokenSet;
 
 		req.session.destroy(err => {
@@ -204,11 +204,12 @@ app.get("/logout", async (req, res, next) => {
 		handleErrorAndRedirect(req, res, err);
 	}
 });
+
 // Back Channel Logout endpoint
 app.post('/backchannel_logout', async (req, res) => {
 	console.log('Back channel logout init:');
 	try {
-		const client = await setUpOIDC();
+		const client = await setUpOIDC(req, res);
 		const logoutToken = req.body.logout_token;
 
 		if (!logoutToken) {
@@ -304,8 +305,8 @@ app.listen(PORT, () => {
 	console.log(`Navigate to http://localhost:${PORT}`);
 });
 
-async function refreshAccessToken(req) {
-	const client = await setUpOIDC();
+async function refreshAccessToken(req, res) {
+	const client = await setUpOIDC(req, res);
 	const tokenSet = req.session.tokenSet;
 
 	if (!tokenSet?.refresh_token) {
@@ -332,7 +333,7 @@ async function ensureAuthenticated(req, res, next) {
 			return res.redirect("/login");
 		}
 		// purpose of the refresh token is get the users updated values
-		await refreshAccessToken(req);
+		await refreshAccessToken(req, res);
 
 		next();
 	} catch (err) {
