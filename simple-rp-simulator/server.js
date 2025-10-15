@@ -18,6 +18,9 @@ Copyright (c) 2023 - IBM Corp.
  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+// OIDC Relying Party Simulator with PKCE (Proof Key for Code Exchange) Support
+// This implementation includes RFC 7636 PKCE for enhanced security in OAuth 2.0 flows
+
 const express = require('express');
 const session = require('express-session');
 // Create a MemoryStore instance
@@ -114,11 +117,23 @@ app.get('/login', async (req, res, next) => {
 
 	try {
 		const client = await setUpOIDC(req, res);
+		
+		// Generate PKCE parameters
+		const code_verifier = generators.codeVerifier();
+		const code_challenge = generators.codeChallenge(code_verifier);
+		
+		// Store code_verifier in session for later use in token exchange
+		req.session.code_verifier = code_verifier;
+		
+		console.log('PKCE: Generated code_verifier and code_challenge for session');
+		
 		const url = client.authorizationUrl({
 			scope: SCOPE,
 			state: generators.state(),
 			redirect_uri: process.env.REDIRECT_URI,
 			response_types: RESPONSE_TYPE,
+			code_challenge,
+			code_challenge_method: 'S256',
 		});
 		res.redirect(url);
 
@@ -133,8 +148,21 @@ app.get(REDIRECT_URI_PATHNAME, async (req, res) => {
 	try {
 		const client = await setUpOIDC(req, res);
 		const params = client.callbackParams(req);
+		
+		// Retrieve the code_verifier from session for PKCE
+		const code_verifier = req.session.code_verifier;
+		if (!code_verifier) {
+			throw new Error('Missing code_verifier in session. PKCE flow may have been compromised.');
+		}
+		
+		console.log('PKCE: Using code_verifier from session for token exchange');
+		
 		const tokenSet = await client.callback(process.env.REDIRECT_URI,
-			params, { state: req.query.state, nonce: req.session.nonce });
+			params, { 
+				state: req.query.state, 
+				nonce: req.session.nonce,
+				code_verifier: code_verifier 
+			});
 		const userinfo = await client.userinfo(tokenSet.access_token);
 
 		// use sub in this sample as session id
@@ -147,6 +175,9 @@ app.get(REDIRECT_URI_PATHNAME, async (req, res) => {
 			}
 			req.session.tokenSet = tokenSet; // Save tokenSet in session
 			req.session.userinfo = userinfo; // Save userinfo in session
+			// Clear the code_verifier from session as it's no longer needed
+			delete req.session.code_verifier;
+			console.log('PKCE: code_verifier cleared from session after successful token exchange');
 			res.redirect('/dashboard');
 		});
 

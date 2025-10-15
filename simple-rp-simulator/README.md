@@ -1,8 +1,9 @@
-# Dev portal sample app for Authorization code flow.
+# Dev portal sample app for Authorization code flow with PKCE.
 
 This sample shows how to use the openid-client library with Node.js to:
-- Authenticate a registered user via IBM Security Verify
+- Authenticate a registered user via IBM Security Verify using Authorization Code flow with PKCE (Proof Key for Code Exchange)
 - Successfully make an API request to `userinfo` endpoint to return the authenticated users details.
+- Implement RFC 7636 PKCE for enhanced security in OAuth 2.0 flows. PKCE (Proof Key for Code Exchange) is a security extension that helps prevent authorization code interception attacks, especially important for public clients and mobile applications.
 
 ![screenshot](screenshot.png)
 
