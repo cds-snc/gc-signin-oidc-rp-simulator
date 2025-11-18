@@ -55,8 +55,8 @@ app.use(session({
 		httpOnly: process.env.NODE_ENV === 'production'
 	},
 	genid: (req) => {
-		if (req.oidcSub)
-			return req.oidcSub;
+		if (req.oidcSID)
+			return req.oidcSID;
 		else
 			return crpto.randomUUID();
 	},
@@ -165,9 +165,16 @@ app.get(REDIRECT_URI_PATHNAME, async (req, res) => {
 			});
 		const userinfo = await client.userinfo(tokenSet.access_token);
 
+		// use SID in this sample as session id
+		req.oidcSID = tokenSet.claims().sid;
+		if (!req.oidcSID) {
+			throw new Error('Missing sid claim in ID token. Cannot bind session.');
+		}
+		console.log('OIDC SID for session binding:', req.oidcSID);
 		// use sub in this sample as session id
-		req.oidcSub = tokenSet.claims().sub;
-		// regenerate session, so that genid function will use sub as session id
+		// req.oidcSub = tokenSet.claims().sub;
+		// regenerate session, so that genid function will use SID as session id
+		// in this example, genid function is being used to set session id
 		req.session.regenerate((err) => {
 			if (err) {
 				console.error('Session regeneration error:', err);
@@ -251,11 +258,10 @@ app.post('/backchannel_logout', async (req, res) => {
 		const payload = await validateLogoutToken(logoutToken, jwks);
 
 		// Terminate session(s)
+		// In this demo, use SID associate to session
 		if (payload.sid) {
 			await destroySessionsBySid(payload.sid);
-		} else if (payload.sub) {
-			await destroySessionsBySub(payload.sub);
-		}
+		} 
 
 		// Return successful response
 		return res.status(200).json({ status: 'ok' });
@@ -299,8 +305,10 @@ async function validateLogoutToken(logoutToken, jwks) {
 	//   // Mark as seen; in production persist with TTL at least until token expiry
 	//   seenJti.add(payload.jti);
 
+	// Required: sid present (In this demo, we use sid to identify session)
+	if (!payload.sid) throw new Error('must contain sid');
 	// Required: sub or sid present (per spec)
-	if (!payload.sub && !payload.sid) throw new Error('must contain sub or sid');
+	// if (!payload.sub && !payload.sid) throw new Error('must contain sub or sid');
 
 	return payload;
 }
@@ -313,6 +321,7 @@ async function destroySessionsBySid(sid) {
 			console.error('Failed to destroy session:', err);
 		}
 	});
+	console.log('Session destroy by SID:', sid);
 }
 async function destroySessionsBySub(sub) {
 	// Example: find sessions by sub and destroy them
@@ -321,6 +330,7 @@ async function destroySessionsBySub(sub) {
 			console.error('Failed to destroy session:', err);
 		}
 	});
+	console.log('Session destroy by Sub:', sub);
 }
 
 app.get('/debug', (req, res) => {
