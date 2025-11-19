@@ -171,8 +171,6 @@ app.get(REDIRECT_URI_PATHNAME, async (req, res) => {
 			throw new Error('Missing sid claim in ID token. Cannot bind session.');
 		}
 		console.log('OIDC SID for session binding:', req.oidcSID);
-		// use sub in this sample as session id
-		// req.oidcSub = tokenSet.claims().sub;
 		// regenerate session, so that genid function will use SID as session id
 		// in this example, genid function is being used to set session id
 		req.session.regenerate((err) => {
@@ -307,8 +305,6 @@ async function validateLogoutToken(logoutToken, jwks) {
 
 	// Required: sid present (In this demo, we use sid to identify session)
 	if (!payload.sid) throw new Error('must contain sid');
-	// Required: sub or sid present (per spec)
-	// if (!payload.sub && !payload.sid) throw new Error('must contain sub or sid');
 
 	return payload;
 }
@@ -323,15 +319,7 @@ async function destroySessionsBySid(sid) {
 	});
 	console.log('Session destroy by SID:', sid);
 }
-async function destroySessionsBySub(sub) {
-	// Example: find sessions by sub and destroy them
-	memoryStore.destroy(sub, (err) => {
-		if (err) {
-			console.error('Failed to destroy session:', err);
-		}
-	});
-	console.log('Session destroy by Sub:', sub);
-}
+
 
 app.get('/debug', (req, res) => {
 	console.log('Session:', req.session);
