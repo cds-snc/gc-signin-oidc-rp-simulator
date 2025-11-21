@@ -3,11 +3,22 @@ import createError from 'http-errors';
 import { Issuer } from 'openid-client';
 import expressSession from 'express-session';
 import passport from 'passport';
-import { oidc_clients, sessionSecret, ui_config } from '../config';
+import { oidc_clients, sessionSecret, ui_config } from './config';
 import { locales_en, locales_fr } from './locales/translations';
+
+import * as dotenv from "dotenv"
 
 import { OpenIDConnectStrategy } from './strategy';
 
+
+// Load .env.local if not in production
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config({ path: ".env.local" });
+}
+
+export const defaultBaseUrl = "http://localhost:8080";
+export const BASE_URL = process.env.BASE_URL || defaultBaseUrl;
+export const LINKING_BASE_URL = process.env.LINKING_BASE_URL || defaultBaseUrl;
 export const DEFAULT_PORT = process.env.PORT || 8080;
 
 interface RequestWithUserSession extends express.Request {
@@ -33,7 +44,10 @@ export class ServerExpress {
         resave: false,
         saveUninitialized: true,
         cookie: {
-          maxAge: 600000
+          maxAge: 600000,
+          httpOnly: true,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production"
         }
       })
     );
@@ -45,7 +59,11 @@ export class ServerExpress {
 
     setupStrategies();
 
+
+
     app.get('/', (req, res) => res.render('index', { ui_config: ui_config }));
+
+    app.get('/health', (req, res) => res.status(200).send('ok'));
 
     app.get('/rpsim/:page/:lang', (req: RequestWithUserSession, res) => {
       let template
@@ -72,7 +90,7 @@ export class ServerExpress {
         case 'login':
           data = {
             ...data,
-            oidc_clients: oidc_clients.map((item) => { return { name: item.name, description: item.description, sic: item.sic } })
+            oidc_clients: returnOIDCConfig().map((item) => { return { name: item.name, description: item.description, sic: item.sic } })
           }
           res.render('login', data)
           break;
@@ -89,7 +107,7 @@ export class ServerExpress {
         default:
           data = {
             ...data,
-            oidc_clients: oidc_clients.map((item) => { return { name: item.name, description: item.description } })
+            oidc_clients: returnOIDCConfig().map((item) => { return { name: item.name, description: item.description } })
           }
           res.render('login', data)
       }
@@ -195,6 +213,23 @@ export class ServerExpress {
       });
     });
 
+    app.get('/sector.json', (req: RequestWithUserSession, res) => {
+      console.log("got to sector json endpoint");
+      try {
+        const uris = [
+          // replace with your real redirect URIs when ready
+          BASE_URL + "/auth/callback/client1",
+          LINKING_BASE_URL + "/link/callback/client3"
+        ];
+        res.status(200)
+          .set('Content-Type', 'application/json')
+          .set('Cache-Control', 'no-store, max-age=0')
+          .send(JSON.stringify(uris));
+      } catch (e) {
+        res.status(500).type('text/plain').send('sector.json error');
+      }
+    });
+
     // invalid routes
 
     // catch 404 and forward to error handler
@@ -213,14 +248,30 @@ export class ServerExpress {
       });
     });
 
-    this.listener = await app.listen(port, () => console.log(`Server listening on port: ${port}`));
+    this.listener = await app.listen(Number(port), "0.0.0.0", () => console.log(`Server listening on port: ${port}`));
   }
 }
+
+
+function returnOIDCConfig() {
+  var baseUrl = BASE_URL || defaultBaseUrl;
+
+  baseUrl = "http://localhost:8080";
+
+  return oidc_clients.map((client) => {
+    const tmp = JSON.parse(JSON.stringify(client)); // shallow-deep clone
+    if (Array.isArray(tmp.config?.redirect_uris) && tmp.config.redirect_uris[0]) {
+      tmp.config.redirect_uris[0] = String(tmp.config.redirect_uris[0]).replace("<baseurl1>", baseUrl);
+    }
+    return tmp;
+  });
+}
+
 
 async function setupStrategies() {
   const params = { scope: ['openid'] };
 
-  for (const cli of oidc_clients) {
+  for (const cli of returnOIDCConfig()) {
     try {
       const issuer = await Issuer.discover(cli.ap);
       const client = new issuer.Client(cli.config);
