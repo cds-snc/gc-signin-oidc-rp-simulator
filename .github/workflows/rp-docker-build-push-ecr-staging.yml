@@ -14,7 +14,7 @@ env:
   TAG_NAME: gc-signin-staging-rp-sim
   ECS_SERVICE: gc-signin-staging__rp_sim_ecs_cluster_service
   ECS_CLUSTER: gc-signin-staging_rp_sim_ecs_cluster
-  ECR: ${{ vars.STAGING_AWS_ACCOUNT_ID }}.dkr.ecr.ca-central-1.amazonaws.com/gc-signin-staging-rp-sim
+  ECR: ${{ vars.STAGING_AWS_ACCOUNT_ID }}.dkr.ecr.ca-central-1.amazonaws.com/signin-staging-rp-sim
   GITHUB_SHA: ${{ github.sha }}
 
 permissions:
