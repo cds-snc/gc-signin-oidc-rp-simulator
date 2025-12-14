@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+<html lang="<%= lang %>">
+<%- include('head')-%>
+
+<body onload="setOptionsValues()" vocab="http://schema.org/" typeof="WebPage" class="page-home">
+	<%- include('header')-%>
+	<main property="mainContentOfPage" class="container">
+		<div class="row profile">
+			<div class="col-md-12">
+				<h1 property="name" id="wb-cont"><%= content_title %> (<%= ui_config.client_label %>)</h1>
+			</div>
+            <div class="col-md-12">
+                <fieldset class="mrgn-tp-lg">
+                    <legend class="h3">How did you sign in last time?</legend>
+
+                    <div class="radio">
+                        <label for="gc-signin">
+                        <input type="radio" name="signin" id="gc-signin" value="gc-signin">
+                        <span class="text-bold">GC Sign in</span><br>
+                        <span class="text-muted">Email and password</span>
+                        </label>
+                    </div>
+
+                    <div class="radio">
+                        <label for="gckey">
+                        <input type="radio" name="signin" id="gckey" value="gckey">
+                        <span class="text-bold">GCKey</span><br>
+                        <span class="text-muted">Username and password</span>
+                        </label>
+                    </div>
+
+                    <div class="radio">
+                        <label for="interac">
+                        <input type="radio" name="signin" id="interac" value="interac">
+                        <span class="text-bold">Interac sign-in partners</span><br>
+                        <span class="text-muted">Canadian banks</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+            </div>
+
+		</div>
+
+        
+ 
+
+    <%- include('preFooter')-%>
+	</main>	
+	<%- include('footer')-%>
+</body></html>

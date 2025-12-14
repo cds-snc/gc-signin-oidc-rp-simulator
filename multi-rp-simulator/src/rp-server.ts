@@ -76,6 +76,20 @@ export class ServerExpress {
           }
           res.render('login', data)
           break;
+        case 'loginMigration':
+          data = {
+            ...data,
+            oidc_clients: oidc_clients.map((item) => { return { name: item.name, description: item.description, sic: item.sic } })
+          }
+          res.render('loginMigration', data)
+          break;
+        case 'signinpage':
+          data = {
+            ...data,
+            oidc_clients: oidc_clients.map((item) => { return { name: item.name, description: item.description, sic: item.sic } })
+          }
+          res.render('signInPage', data)
+          break;
         case 'response':
           data = {
             ...data,
