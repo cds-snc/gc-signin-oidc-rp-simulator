@@ -67,6 +67,8 @@ export class ServerExpress {
         ui_config: ui_config,
         isLoggedIn: req.user != undefined
       }
+      console.log("========= rpsim endpoint ====== ")
+      console.log(req.params.page)
 
       switch (req.params.page) {
         case 'login':
@@ -131,6 +133,9 @@ export class ServerExpress {
 
     app.get('/auth/callback/:provider', (req, res, next) => {
       const provider = req.params.provider
+      
+      console.log(" ========= /auth/callback/:provider")
+      console.log(provider)
 
       passport.authenticate(provider, {
         successRedirect: `/success/${provider}`,
@@ -143,7 +148,19 @@ export class ServerExpress {
       // save teh current provider in req.session for the logout
       req.session.provider = provider
 
-      res.redirect(`/rpsim/response/${getLocale(req)}`);
+      console.log(" ========= /success/:provider")
+      console.log(provider)
+      const rawLocale = getLocale(req);
+
+      const currentLocale =
+        rawLocale && rawLocale !== "undefined" ? rawLocale : "en";
+
+
+      const redirectUri = `http://localhost:8080/rpsim/response/${currentLocale}`;
+      console.log(redirectUri)
+
+
+      res.redirect(redirectUri);
     });
 
     app.get('/error', (req, res) => res.status(500).render('error', { err: req.query.error }));
