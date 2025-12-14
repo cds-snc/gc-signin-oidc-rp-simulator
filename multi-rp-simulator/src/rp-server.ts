@@ -112,9 +112,21 @@ export class ServerExpress {
     app.get('/auth/:provider', (req: RequestWithUserSession, res, next) => {
       const provider = req.params.provider
 
-      passport.authenticate(provider, {
+      const clientSelected = oidc_clients.find(item => item.name === provider)
+
+      const toSkip = clientSelected
+        ? clientSelected.skip 
+        : false;
+
+      console.log(" ==== to skip =====")
+      console.log(toSkip);
+
+      const opts = {
         ...req.query,
-      })(req, res, next);
+        skipMigration: toSkip,       // <— your injected value
+      };
+
+      passport.authenticate(provider, opts as any)(req, res, next);
     });
 
     app.get('/auth/callback/:provider', (req, res, next) => {

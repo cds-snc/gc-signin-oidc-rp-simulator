@@ -75,10 +75,20 @@ OpenIDConnectStrategy.prototype.authenticate = function authenticate(req, option
     }
     const reqParams = client.callbackParams(req);
     const sessionKey = this._key;
+    console.log(" =============== ");
+    console.log(options);
+
+    const toSkip = options
+        ? options.skipMigration 
+        : false;
+
 
     /* start authentication request */
     if (Object.keys(reqParams).length === 0) {
       // provide options object with extra authentication parameters
+
+      
+
       const params = {
         state: random(),
         ...this._params,
@@ -106,6 +116,10 @@ OpenIDConnectStrategy.prototype.authenticate = function authenticate(req, option
             params.code_challenge = verifier;
             break;
         }
+      }
+
+      if(toSkip === true){
+        params.skipmigration = "true";
       }
 
       //save the authentication request parameters
