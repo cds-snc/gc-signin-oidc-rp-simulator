@@ -50,7 +50,7 @@
 		<ul role="menu" aria-orientation="vertical">
 		  <li role="presentation"><a role="menuitem" href="<%= home_link %>" ><%= home_label %></a></li>
 		  <% if (!isLoggedIn) { %>
-		  <li role="presentation"><a role="menuitem" href="http://localhost:8080/rpsim/loginMigration/en" >Sign In</a></li>
+		  <li role="presentation"><a role="menuitem" href="<%= loginMigration_link %>" >Sign In</a></li>
 		  <%}%>
 		  <li role="presentation"><a role="menuitem" href="<%= response_link %>" ><%= response_label %></a></li>
 		  <li role="presentation"><a role="menuitem" href="" ><%= help_label %></a></li>

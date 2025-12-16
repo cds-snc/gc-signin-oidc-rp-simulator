@@ -121,7 +121,7 @@ export class ServerExpress {
       }
     });
 
-    app.get('/auth/:provider', (req: RequestWithUserSession, res, next) => {
+    app.get('/auth/:provider/:lang', (req: RequestWithUserSession, res, next) => {
       const provider = req.params.provider
 
       const clientSelected = oidc_clients.find(item => item.name === provider)
@@ -133,9 +133,16 @@ export class ServerExpress {
       console.log(" ==== to skip =====")
       console.log(toSkip);
 
+      const currentLocale = req.params.lang;
+
+      console.log(" ==== local =====")
+
+      console.log(currentLocale);
+
       const opts = {
         ...req.query,
-        skipMigration: toSkip,       // <— your injected value
+        skipMigration: toSkip,
+        lang: currentLocale       // <— your injected value
       };
 
       passport.authenticate(provider, opts as any)(req, res, next);

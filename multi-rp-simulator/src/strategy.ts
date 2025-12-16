@@ -121,7 +121,7 @@ OpenIDConnectStrategy.prototype.authenticate = function authenticate(req, option
       if(toSkip === true){
         params.skipmigration = "true";
       }
-
+      params.lang = options.lang || 'en';
       //save the authentication request parameters
       req.session.reqParams = params;
 
