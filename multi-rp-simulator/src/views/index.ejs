@@ -1,71 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<title><%= ui_config.title_en %> - <%= ui_config.title_fr %></title>
-		<meta content="width=device-width,initial-scale=1" name="viewport">
-		<meta name="description" content="">
-		<meta name="dcterms.creator" content="Government of Canada, Treasury Board of Canada Secretariat, Office of the Chief Information Officer, Cyber Security">
-		<meta name="dcterms.creator" lang="fr" content="Gouvernement du Canada, Secrétariat du Conseil du Trésor du Canada, Bureau du dirigeant principal de l’information, cyber-sécurité">
-		<meta name="dcterms.title" content="<%= ui_config.title_en %>">
-		<meta name="dcterms.title" lang="fr" content="<%= ui_config.title_fr %>">
-		<meta name="dcterms.modified" title="W3CDTF" content="">
-		<meta name="dcterms.subject" title="scheme" content="Government of Canada, authentication">
-		<meta name="dcterms.subject" lang="fr" title="scheme" content="Gouvernement du Canada, authentication">
-		<meta name="dcterms.language" title="ISO639-2" content="eng">
-		<meta name="dcterms.language" lang="fr" title="ISO639-2" content="fra">
-		<meta name="robots" content="noindex, follow">
+    <head>
+        <meta charset="utf-8">
+        <title><%= ui_config.title_en %> - <%= ui_config.title_fr %></title>
+        <meta content="width=device-width,initial-scale=1" name="viewport">
+        <meta name="description" content="">
+        <meta name="dcterms.creator" content="Government of Canada, Treasury Board of Canada Secretariat, Office of the Chief Information Officer, Cyber Security">
+        <meta name="dcterms.creator" lang="fr" content="Gouvernement du Canada, Secrétariat du Conseil du Trésor du Canada, Bureau du dirigeant principal de l’information, cyber-sécurité">
+        <meta name="dcterms.title" content="<%= ui_config.title_en %>">
+        <meta name="dcterms.title" lang="fr" content="<%= ui_config.title_fr %>">
+        <meta name="dcterms.modified" title="W3CDTF" content="">
+        <meta name="dcterms.subject" title="scheme" content="Government of Canada, authentication">
+        <meta name="dcterms.subject" lang="fr" title="scheme" content="Gouvernement du Canada, authentication">
+        <meta name="dcterms.language" title="ISO639-2" content="eng">
+        <meta name="dcterms.language" lang="fr" title="ISO639-2" content="fra">
+        <meta name="robots" content="noindex, follow">
 
-		<link href="<%= ui_config.wet_cdts_hosturl %>/<%= ui_config.wet_cdts_version %>/wet-boew/assets/favicon.ico" rel="icon" type="image/x-icon">
-		<link rel="stylesheet" href="https://www.canada.ca/etc/designs/canada/wet-boew/css/theme.css">
-		<link rel="stylesheet" href="<%= ui_config.wet_cdts_hosturl %>/<%= ui_config.wet_cdts_version %>/wet-boew/css/messages.min.css">
+        <link href="<%= ui_config.wet_cdts_hosturl %>/<%= ui_config.wet_cdts_version %>/wet-boew/assets/favicon.ico" rel="icon" type="image/x-icon">
+        <link rel="stylesheet" href="https://www.canada.ca/etc/designs/canada/wet-boew/css/theme.css">
+        <link rel="stylesheet" href="<%= ui_config.wet_cdts_hosturl %>/<%= ui_config.wet_cdts_version %>/wet-boew/css/messages.min.css">
 
-		<noscript><link rel="stylesheet" href="<%= ui_config.wet_cdts_hosturl %>/<%= ui_config.wet_cdts_version %>/wet-boew/css/noscript.min.css" /></noscript>
-	</head>
-	<body class="splash" vocab="http://schema.org/" typeof="WebPage">
-		<div id="bg">
-			<img src="<%= ui_config.wet_cdts_hosturl %>/<%= ui_config.wet_cdts_version %>/wet-boew/assets/sp-bg-2.jpg" alt="Blurry mountains / Montagnes floues">
-		</div>
+        <noscript><link rel="stylesheet" href="<%= ui_config.wet_cdts_hosturl %>/<%= ui_config.wet_cdts_version %>/wet-boew/css/noscript.min.css" /></noscript>
+    </head>
+    <body class="splash" vocab="http://schema.org/" typeof="WebPage">
+        <div id="bg">
+            <img src="<%= ui_config.wet_cdts_hosturl %>/<%= ui_config.wet_cdts_version %>/wet-boew/assets/sp-bg-2.jpg" alt="Blurry mountains / Montagnes floues">
+        </div>
 
-		<main role="main">
-			<div class="sp-hb">
-				<div class="sp-bx col-xs-12">
-					<h1 property="name" class="wb-inv">Canada-ca</h1>
-					<div class="row">
-						<div class="col-xs-11 col-md-8">
-							<img src="<%= ui_config.wet_cdts_hosturl %>/<%= ui_config.wet_cdts_version %>/wet-boew/assets/sig-spl.svg" width="283" alt="Government of Canada / Gouvernement du Canada">
-						</div>
-					</div>
+        <main role="main">
+            <div class="sp-hb">
+                <div class="sp-bx col-xs-12">
+                    <h1 property="name" class="wb-inv">Canada-ca</h1>
+                    <div class="row">
+                        <div class="col-xs-11 col-md-8">
+                            <img src="<%= ui_config.wet_cdts_hosturl %>/<%= ui_config.wet_cdts_version %>/wet-boew/assets/sig-spl.svg" width="283" alt="Government of Canada / Gouvernement du Canada">
+                        </div>
+                    </div>
 
-					<div class="row">
-						<section class="col-xs-6 text-right">
-							<h2 class="wb-inv"><%= ui_config.title_en %></h2>
-							<p><a href="/rpsim/login/en" class="btn btn-primary">English</a></p>
-						</section>
+                    <div class="row">
+                        <section class="col-xs-6 text-right">
+                            <h2 class="wb-inv"><%= ui_config.title_en %></h2>
+                            <p><a href="/rpsim/login/en" class="btn btn-primary">English</a></p>
+                        </section>
 
-						<section class="col-xs-6" lang="fr">
-							<h2 class="wb-inv"><%= ui_config.title_fr %></h2>
-							<p><a href="/rpsim/login/fr" class="btn btn-primary">Français</a></p>
-						</section>
-					</div>
-				</div>
+                        <section class="col-xs-6" lang="fr">
+                            <h2 class="wb-inv"><%= ui_config.title_fr %></h2>
+                            <p><a href="/rpsim/login/fr" class="btn btn-primary">Français</a></p>
+                        </section>
+                    </div>
+                </div>
 
-				<div class="sp-bx-bt col-xs-12">
-					<div class="row">
-						<div class="col-xs-7 col-md-8">
-							<a href="https://www.canada.ca/en/transparency/terms.html" class="sp-lk">Terms and conditions</a> <span class="glyphicon glyphicon-asterisk"></span> <a href="https://www.canada.ca/fr/transparence/avis.html" class="sp-lk" lang="fr">Avis</a>
-						</div>
+                <div class="sp-bx-bt col-xs-12">
+                    <div class="row">
+                        <div class="col-xs-7 col-md-8">
+                            <a href="https://www.canada.ca/en/transparency/terms.html" class="sp-lk">Terms and conditions</a> <span class="glyphicon glyphicon-asterisk"></span> <a href="https://www.canada.ca/fr/transparence/avis.html" class="sp-lk" lang="fr">Avis</a>
+                        </div>
 
-						<div class="col-xs-5 col-md-4 text-right mrgn-bttm-md">
-              				<img src="<%= ui_config.wet_cdts_hosturl %>/<%= ui_config.wet_cdts_version %>/wet-boew/assets/wmms-blk.svg" alt="Symbol of the Government of Canada / Symbole du gouvernement du Canada"/>
-						</div>
-					</div>
-				</div>
-			</div>
-		</main>
+                        <div class="col-xs-5 col-md-4 text-right mrgn-bttm-md">
+                            <img src="<%= ui_config.wet_cdts_hosturl %>/<%= ui_config.wet_cdts_version %>/wet-boew/assets/wmms-blk.svg" alt="Symbol of the Government of Canada / Symbole du gouvernement du Canada"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
 
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/<%= ui_config.jquery_version %>/jquery.js"></script>
-		<script src="https://www.canada.ca/etc/designs/canada/wet-boew/js/wet-boew.min.js"></script>
-		<script src="https://www.canada.ca/etc/designs/canada/wet-boew/js/theme.min.js"></script>
-	</body>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/<%= ui_config.jquery_version %>/jquery.js"></script>
+        <script src="https://www.canada.ca/etc/designs/canada/wet-boew/js/wet-boew.min.js"></script>
+        <script src="https://www.canada.ca/etc/designs/canada/wet-boew/js/theme.min.js"></script>
+    </body>
 </html>

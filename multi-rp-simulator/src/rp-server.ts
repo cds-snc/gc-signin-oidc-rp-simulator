@@ -45,7 +45,10 @@ export class ServerExpress {
 
     setupStrategies();
 
-    app.get('/', (req, res) => res.render('index', { ui_config: ui_config }));
+    //app.get('/', (req, res) => res.render('index', { ui_config: ui_config }));
+    app.get('/', (req, res) => {
+      res.redirect('/rpsim/FCACHomePage/en');
+    });
 
     app.get('/rpsim/:page/:lang', (req: RequestWithUserSession, res) => {
       let template
@@ -84,6 +87,13 @@ export class ServerExpress {
             oidc_clients: oidc_clients.map((item) => { return { name: item.name, description: item.description, sic: item.sic } })
           }
           res.render('loginMigration', data)
+          break;
+        case 'FCACHomePage':
+          data = {
+            ...data,
+            oidc_clients: oidc_clients.map((item) => { return { name: item.name, description: item.description, sic: item.sic } })
+          }
+          res.render('FCACHomePage', data)
           break;
         case 'signinpage':
           data = {

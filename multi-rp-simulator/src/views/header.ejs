@@ -49,6 +49,9 @@
 		<button type="button" aria-haspopup="true" aria-expanded="false"><span class="wb-inv">Main </span>Menu <span class="expicon glyphicon glyphicon-chevron-down"></span></button>
 		<ul role="menu" aria-orientation="vertical">
 		  <li role="presentation"><a role="menuitem" href="<%= home_link %>" ><%= home_label %></a></li>
+		  <% if (!isLoggedIn) { %>
+		  <li role="presentation"><a role="menuitem" href="http://localhost:8080/rpsim/loginMigration/en" >Sign In</a></li>
+		  <%}%>
 		  <li role="presentation"><a role="menuitem" href="<%= response_link %>" ><%= response_label %></a></li>
 		  <li role="presentation"><a role="menuitem" href="" ><%= help_label %></a></li>
 		  <li role="presentation"><a role="menuitem" href="<%= gc_link %>">canada.ca</a></li>
