@@ -121,6 +121,18 @@ export class ServerExpress {
       }
     });
 
+    app.get('/auth/callback/:provider', (req, res, next) => {
+      const provider = req.params.provider
+      
+      console.log(" ========= /auth/callback/:provider")
+      console.log(provider)
+
+      passport.authenticate(provider, {
+        successRedirect: `/success/${provider}`,
+        failureRedirect: `/error?error=${req.query.error}: ${req.query.error_description}`,
+      })(req, res, next);
+    });
+
     app.get('/auth/:provider/:lang', (req: RequestWithUserSession, res, next) => {
       const provider = req.params.provider
 
@@ -133,8 +145,14 @@ export class ServerExpress {
       console.log(" ==== to skip =====")
       console.log(toSkip);
 
-      const currentLocale = req.params.lang;
+      let currentLocale = req.params.lang;
+      console.log(" ==== local =====")
 
+      console.log(currentLocale);
+      if(currentLocale !== 'en' && currentLocale !== 'fr'){
+        currentLocale = 'en';
+      }
+      
       console.log(" ==== local =====")
 
       console.log(currentLocale);
@@ -148,17 +166,7 @@ export class ServerExpress {
       passport.authenticate(provider, opts as any)(req, res, next);
     });
 
-    app.get('/auth/callback/:provider', (req, res, next) => {
-      const provider = req.params.provider
-      
-      console.log(" ========= /auth/callback/:provider")
-      console.log(provider)
-
-      passport.authenticate(provider, {
-        successRedirect: `/success/${provider}`,
-        failureRedirect: `/error?error=${req.query.error}: ${req.query.error_description}`,
-      })(req, res, next);
-    });
+  
 
     app.get('/success/:provider', (req: RequestWithUserSession, res) => {
       const provider = req.params.provider
@@ -167,11 +175,11 @@ export class ServerExpress {
 
       console.log(" ========= /success/:provider")
       console.log(provider)
+      
+      
       const rawLocale = getLocale(req);
 
-      const currentLocale =
-        rawLocale && rawLocale !== "undefined" ? rawLocale : "en";
-
+      const currentLocale = rawLocale && rawLocale !== "undefined" ? rawLocale : "en";
 
       const redirectUri = `http://localhost:8080/rpsim/response/${currentLocale}`;
       console.log(redirectUri)
