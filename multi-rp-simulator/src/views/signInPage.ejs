@@ -13,21 +13,21 @@
                   <legend>How did you sign in last time?</legend>
                   <div class="radio">
                      <label>
-                     <input type="radio" name="signin" value="gc-signin">
+                     <input type="radio" name="signin" value="gc-signin" aria-controls="panel-gc-signin" aria-expanded="false">
                      <span class="text-bold">GC Sign in</span><br>
                      <span class="text-muted">Email and password</span>
                      </label>
                   </div>
                   <div class="radio">
                      <label>
-                     <input type="radio" name="signin" value="gckey">
+                     <input type="radio" name="signin" value="gckey" aria-controls="panel-gckey" aria-expanded="false">
                      <span class="text-bold">GCKey</span><br>
                      <span class="text-muted">Username and password</span>
                      </label>
                   </div>
                   <div class="radio">
                      <label>
-                     <input type="radio" name="signin" value="interac">
+                     <input type="radio" name="signin" value="interac" aria-controls="panel-interac" aria-expanded="false">
                      <span class="text-bold">Interac sign-in partners</span><br>
                      <span class="text-muted">Canadian banks</span>
                      </label>
@@ -43,11 +43,11 @@
                       <p class="mrgn-tp-md">
                         <a 
                             class="btn btn-primary" 
-                            id="SignInWithGCSignIn" 
+                            id="SignInWithGCSignIn-gcsignin" 
                             href="/auth/<%= oidc_clients[2].name %>/<%= lang %>" 
                             onclick="submitWithQueryString(this)"
                             >
-                            <span class="fas fa-sign-in-alt"></span> 
+                            <span class="fas fa-sign-in-alt" aria-hidden="true"></span> 
                             Sign in with GC Sign in
                         </a> 
                      </p>
@@ -93,11 +93,11 @@
                      <p class="mrgn-tp-md">
                         <a 
                             class="btn btn-primary" 
-                            id="SignInWithGCSignIn" 
+                            id="SignInWithGCSignIn-gckey" 
                             href="/auth/<%= oidc_clients[1].name%>/<%= lang %>" 
                             onclick="submitWithQueryString(this)"
                             >
-                            <span class="fas fa-sign-in-alt"></span> 
+                            <span class="fas fa-sign-in-alt" aria-hidden="true"></span> 
                             Start Step 1
                         </a> 
                      </p>
@@ -154,11 +154,11 @@
                      <p class="mrgn-tp-md">
                         <a 
                             class="btn btn-primary" 
-                            id="SignInWithGCSignIn" 
+                            id="SignInWithGCSignIn-interac" 
                             href="/auth/<%= oidc_clients[1].name%>/<%= lang %>" 
                             onclick="submitWithQueryString(this)"
                             >
-                            <span class="fas fa-sign-in-alt"></span> 
+                            <span class="fas fa-sign-in-alt" aria-hidden="true"></span> 
                             Start Step 1
                         </a> 
                      </p>
@@ -184,14 +184,23 @@
                     panel.classList.add('hidden');
                     panel.setAttribute('aria-hidden', 'true');
                     });
+
+                    radios.forEach(radio => {
+                    radio.setAttribute('aria-expanded', 'false');
+                    });
                 }
             
                 function showPanel(value) {
                     const panel = document.getElementById('panel-' + value);
                     if (!panel) return;
-            
+
                     panel.classList.remove('hidden');
                     panel.setAttribute('aria-hidden', 'false');
+
+                    const selectedRadio = document.querySelector('input[name="signin"][value="' + value + '"]');
+                    if (selectedRadio) {
+                    selectedRadio.setAttribute('aria-expanded', 'true');
+                    }
                 }
             
                 radios.forEach(radio => {
@@ -210,6 +219,10 @@
             })();
          </script>
          <style>
+            .hidden {
+  display: none !important;
+}
+
             /* Screen-reader-only utility (WET uses .wb-inv; React version often used .sr-only) */
 .sr-only,
 .wb-inv {
@@ -338,7 +351,7 @@
 }
 
 .gc-stepper__desc {
-  color: #6b6b6b;
+  color: #4b4b4b;
   font-size: 1rem;
   line-height: 1.3;
   max-width: 14rem;
