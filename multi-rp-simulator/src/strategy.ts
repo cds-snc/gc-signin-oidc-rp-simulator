@@ -1,12 +1,40 @@
 import url from 'url';
 import { format } from 'util';
 
-import cloneDeep from '../node_modules/openid-client/lib/helpers/deep_clone';
-import { RPError, OPError } from '../node_modules/openid-client/lib/errors';
-import { BaseClient } from '../node_modules/openid-client/lib/client';
-import { random, codeChallenge } from '../node_modules/openid-client/lib/helpers/generators';
-import pick from '../node_modules/openid-client/lib/helpers/pick';
-import { resolveResponseType, resolveRedirectUri } from '../node_modules/openid-client/lib/helpers/client';
+import { deserialize, serialize } from 'v8';
+import { BaseClient, errors, generators } from 'openid-client';
+
+const cloneDeep =
+  globalThis.structuredClone || ((obj) => deserialize(serialize(obj)));
+
+const pick = (object, ...paths) => {
+  const obj = {};
+  for (const path of paths) {
+    if (object[path] !== undefined) {
+      obj[path] = object[path];
+    }
+  }
+  return obj;
+};
+
+const resolveResponseType = function resolveResponseType() {
+  const { length, 0: value } = this.response_types;
+  if (length === 1) {
+    return value;
+  }
+  return undefined;
+};
+
+const resolveRedirectUri = function resolveRedirectUri() {
+  const { length, 0: value } = this.redirect_uris || [];
+  if (length === 1) {
+    return value;
+  }
+  return undefined;
+};
+
+const { RPError, OPError } = errors;
+const { random, codeChallenge } = generators;
 
 function verified(err, user, info = {}) {
   if (err) {
@@ -23,7 +51,7 @@ type TOpenIDConnectStrategyArgs = { client: BaseClient; params?: any; passReqToC
  * @api public
  */
 export function OpenIDConnectStrategy({ client, params = {}, passReqToCallback = false, sessionKey, usePKCE = true, extras = {} }: TOpenIDConnectStrategyArgs, verify) {
-  if (!(client instanceof BaseClient)) {
+  if (BaseClient && !(client instanceof BaseClient)) {
     throw new TypeError('client must be an instance of openid-client Client');
   }
 
@@ -64,7 +92,7 @@ export function OpenIDConnectStrategy({ client, params = {}, passReqToCallback =
     throw new TypeError(`${this._usePKCE} is not valid/implemented PKCE code_challenge_method`);
   }
 
-  this.name = url.parse(client.issuer.issuer).hostname;
+  this.name = url.parse(String((client.issuer as any).issuer)).hostname;
 }
 
 OpenIDConnectStrategy.prototype.authenticate = function authenticate(req, options) {
@@ -170,7 +198,7 @@ OpenIDConnectStrategy.prototype.authenticate = function authenticate(req, option
         throw new RPError({
           message: 'expected access_token to be returned when asking for userinfo in verify callback',
           tokenset,
-        });
+        } as any);
       }
       const userinfo = await client.userinfo(tokenset);
       args.splice(1, 0, userinfo);

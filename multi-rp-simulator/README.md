@@ -2,7 +2,16 @@
 
 Source code and configuration for the Sign in Canada OIDC Relying Party Simulator.
 
-`npm i`, create a config.ts file based on sample-config.ts, then `npm start`.
+Copy `.env.example` to `.env` and fill in required values.
+
+Local (non-Docker):
+- `npm i`
+- `npm run build`
+- `npm run start:prod`
+
+Local (Docker):
+- `docker build -t rp-simulator .`
+- `docker run --rm -p 8080:8080 --env-file .env rp-simulator`
 
 `npm test` to run e2e tests.
 

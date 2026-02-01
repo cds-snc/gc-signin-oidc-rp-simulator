@@ -45,6 +45,8 @@ export class ServerExpress {
 
     setupStrategies();
 
+    app.get('/health', (req, res) => res.status(200).send('OK'));
+
     //app.get('/', (req, res) => res.render('index', { ui_config: ui_config }));
     app.get('/', (req, res) => {
       res.redirect('/rpsim/FCACHomePage/en');
@@ -121,11 +123,17 @@ export class ServerExpress {
       }
     });
 
-    app.get('/auth/callback/:provider', (req, res, next) => {
+    app.get('/auth/callback/:provider', async (req, res, next) => {
       const provider = req.params.provider
       
       console.log(" ========= /auth/callback/:provider")
       console.log(provider)
+
+      if (!(await ensureStrategy(provider))) {
+        return res.status(500).render('error', {
+          err: `OIDC client not discovered for ${provider}. Please try again.`,
+        });
+      }
 
       passport.authenticate(provider, {
         successRedirect: `/success/${provider}`,
@@ -133,7 +141,7 @@ export class ServerExpress {
       })(req, res, next);
     });
 
-    app.get('/auth/:provider/:lang', (req: RequestWithUserSession, res, next) => {
+    app.get('/auth/:provider/:lang', async (req: RequestWithUserSession, res, next) => {
       const provider = req.params.provider
 
       const clientSelected = oidc_clients.find(item => item.name === provider)
@@ -156,6 +164,12 @@ export class ServerExpress {
       console.log(" ==== local =====")
 
       console.log(currentLocale);
+
+      if (!(await ensureStrategy(provider))) {
+        return res.status(500).render('error', {
+          err: `OIDC client not discovered for ${provider}. Please try again.`,
+        });
+      }
 
       const opts = {
         ...req.query,
@@ -285,26 +299,98 @@ export class ServerExpress {
   }
 }
 
+const registeredStrategies = new Set<string>();
+
 async function setupStrategies() {
   const params = { scope: ['openid'] };
 
   for (const cli of oidc_clients) {
     try {
-      const issuer = await Issuer.discover(cli.ap);
-      const client = new issuer.Client(cli.config);
-      passport.use(
-        cli.name,
-        new OpenIDConnectStrategy({ client, params, passReqToCallback: true }, (req, tokenSet, userinfo, done) => {
-          req.session.tokenSet = tokenSet;
-          req.session.userinfo = userinfo;
-
-          return done(null, tokenSet.claims());
-        })
-      );
+      await registerStrategy(cli, params);
     } catch (error) {
       console.log(`OPError: ${cli.ap} OIDC client not discovered successfully [Hint: OIDC client offline?].`);
     }
   }
+}
+
+async function ensureStrategy(provider: string) {
+  if (registeredStrategies.has(provider)) {
+    return true;
+  }
+
+  const client = oidc_clients.find((item) => item.name === provider);
+  if (!client) {
+    return false;
+  }
+
+  try {
+    await registerStrategy(client, { scope: ['openid'] });
+    return true;
+  } catch (error) {
+    console.log(`OPError: ${client.ap} OIDC client not discovered successfully [Hint: OIDC client offline?].`);
+    return false;
+  }
+}
+
+async function registerStrategy(cli, params) {
+  const discoverUrl = buildWellKnownUrl(cli.ap);
+  console.log(`[oidc] discover start: ${cli.name} -> ${discoverUrl}`);
+  try {
+    const issuer = await Issuer.discover(discoverUrl);
+    const client = new issuer.Client(cli.config);
+    passport.use(
+      cli.name,
+      new OpenIDConnectStrategy({ client, params, passReqToCallback: true }, (req, tokenSet, userinfo, done) => {
+        req.session.tokenSet = tokenSet;
+        req.session.userinfo = userinfo;
+
+        return done(null, tokenSet.claims());
+      })
+    );
+    registeredStrategies.add(cli.name);
+    console.log(`[oidc] discover success: ${cli.name}`);
+  } catch (error) {
+    logDiscoveryError(cli.name, discoverUrl, error);
+    throw error;
+  }
+}
+
+function logDiscoveryError(clientName: string, url: string, error: any) {
+  const base = `[oidc] discover failed: ${clientName} -> ${url}`;
+  if (error && typeof error === 'object') {
+    const message = error.message ? ` message="${error.message}"` : '';
+    const name = error.name ? ` name="${error.name}"` : '';
+    console.error(`${base}${name}${message}`);
+    if (error.stack) {
+      console.error(error.stack);
+    }
+    if (error.cause) {
+      console.error(`[oidc] discover cause:`, error.cause);
+    }
+    if (error.response) {
+      console.error(`[oidc] discover response:`, {
+        status: error.response.status,
+        headers: error.response.headers,
+        body: error.response.body
+      });
+    }
+    return;
+  }
+  console.error(`${base} error=${String(error)}`);
+}
+
+function buildWellKnownUrl(issuerUrl: string) {
+  const [base, query] = issuerUrl.split('?', 2);
+  const trimmedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  const wellKnownPath = trimmedBase.endsWith('/oauth2')
+    ? `${trimmedBase}/.well-known/openid-configuration`
+    : `${trimmedBase}/oauth2/.well-known/openid-configuration`;
+
+  if (!query) {
+    return wellKnownPath;
+  }
+
+  return `${wellKnownPath}?${query}`;
 }
 
 function getLocale(req: RequestWithUserSession) {
