@@ -3,7 +3,7 @@ import createError from 'http-errors';
 import { Issuer } from 'openid-client';
 import expressSession from 'express-session';
 import passport from 'passport';
-import { oidc_clients, sessionSecret, ui_config } from '../config';
+import { oidc_clients, sessionSecret, ui_config } from './config';
 import { locales_en, locales_fr } from './locales/translations';
 
 import { OpenIDConnectStrategy } from './strategy';
