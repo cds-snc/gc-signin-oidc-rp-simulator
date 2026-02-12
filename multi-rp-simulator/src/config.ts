@@ -24,7 +24,7 @@ const client1 = {
 };
 
 const client2 = {
-  name: 'client1',
+  name: 'client2',
   description: process.env.CLIENT2_DESCRIPTION,
   sic: false,
   ap: process.env.CLIENT2_TENANT_URI,
