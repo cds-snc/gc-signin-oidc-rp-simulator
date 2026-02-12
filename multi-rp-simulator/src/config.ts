@@ -23,7 +23,22 @@ const client1 = {
   }
 };
 
-export const oidc_clients = [client1].filter(client => client.ap !== undefined);
+const client2 = {
+  name: 'client1',
+  description: process.env.CLIENT2_DESCRIPTION,
+  sic: false,
+  ap: process.env.CLIENT2_TENANT_URI,
+  config: {
+    client_id: process.env.CLIENT2_CLIENT_ID,
+    client_secret: process.env.CLIENT2_CLIENT_SECRET,
+    grant_types: ['openid'],
+    redirect_uris: [process.env.CLIENT2_REDIRECT_URI],
+    post_logout_redirect_uris: [process.env.CLIENT2_POST_LOGOUT_REDIRECT_URI],
+    token_endpoint_auth_method: 'client_secret_post' as ClientAuthMethod,
+  }
+};
+
+export const oidc_clients = [client1, client2].filter(client => client.ap !== undefined);
 
 export const ui_config = {
   client_label: 'RP1',
